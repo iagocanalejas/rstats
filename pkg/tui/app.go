@@ -11,9 +11,12 @@ type Application struct {
 
 	service *service.Service
 
-	flex          *tview.Flex
-	racesList     *tview.List
-	currentSearch string
+	currentSearch string // current search keywords
+	errorActive   bool   // if the error modal is showing or not
+
+	flex        *tview.Flex
+	searchInput *tview.InputField
+	racesList   *tview.List
 }
 
 func BuildApp() *Application {
@@ -33,17 +36,22 @@ func BuildApp() *Application {
 
 func (app *Application) initFlex() {
 	app.flex = tview.NewFlex().SetDirection(tview.FlexRow).
-		AddItem(app.searchInput(), 0, 1, false).
-		AddItem(app.listView(), 0, 15, true).
-		AddItem(app.bottomLegend(), 3, 1, false)
+		AddItem(app.searchView(), 4, 0, false).
+		AddItem(app.listView(), 0, 1, true).
+		AddItem(app.bottomLegend(), 3, 0, false)
 }
 
 func (app *Application) setupListeners() {
 	app.App.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+		if app.errorActive {
+			return event
+		}
 		switch event.Key() {
 		case tcell.KeyEnter:
-			// configure search on <CR> press
-			app.populateList()
+			if app.searchInput.HasFocus() {
+				// configure search on <CR> press
+				app.populateList()
+			}
 		case tcell.KeyTab:
 			app.nextFocus()
 		case tcell.KeyEsc:
@@ -54,9 +62,33 @@ func (app *Application) setupListeners() {
 }
 
 func (app *Application) nextFocus() {
-	if app.flex.GetItem(0).HasFocus() {
-		app.App.SetFocus(app.flex.GetItem(1))
+	if app.searchInput.HasFocus() {
+		app.App.SetFocus(app.racesList)
 	} else {
-		app.App.SetFocus(app.flex.GetItem(0))
+		app.App.SetFocus(app.searchInput)
 	}
+}
+
+func (app *Application) errorModal(err error) {
+	if app.errorActive {
+		return
+	}
+
+	modal := tview.NewModal().
+		SetText(err.Error()).
+		AddButtons([]string{"Continue"}).
+		SetDoneFunc(func(buttonIndex int, buttonLabel string) {
+			app.App.SetRoot(app.flex, true).SetFocus(app.flex)
+			app.errorActive = false
+		})
+
+	modal.
+		SetBackgroundColor(tcell.ColorDarkRed).
+		SetTextColor(tcell.ColorYellow).
+		SetBorder(true).
+		SetBorderColor(tcell.ColorWhite).
+		SetBorderPadding(2, 2, 2, 2)
+
+	app.App.SetRoot(modal, true).SetFocus(modal)
+	app.errorActive = true
 }

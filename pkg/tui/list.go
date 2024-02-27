@@ -25,10 +25,15 @@ func (app *Application) listView() *tview.List {
 }
 
 func (app *Application) populateList() {
-	races := app.service.SearchRaces(app.currentSearch)
-
 	app.racesList.Clear()
+
+	races, err := app.service.SearchRaces(app.currentSearch)
+	if err != nil {
+		app.errorModal(err)
+		return
+	}
+
 	for _, race := range races {
-		app.racesList.AddItem(fmt.Sprintf("%d", race.ID), race.Name, 0, nil)
+		app.racesList.AddItem(fmt.Sprintf("%d (%s)", race.ID, race.Date), race.Name, 0, nil)
 	}
 }
