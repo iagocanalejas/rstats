@@ -7,8 +7,33 @@ import (
 	"strings"
 
 	"github.com/iagocanalejas/regatas/internal/db"
-	"github.com/iagocanalejas/regatas/internal/service/races"
+	"github.com/iagocanalejas/regatas/internal/types/participants"
+	"github.com/iagocanalejas/regatas/internal/types/races"
 )
+
+func (s *Service) GetRaceByID(raceID int64) (*races.Race, error) {
+	dbRace, err := s.db.GetRaceByID(raceID)
+	if err != nil {
+		log.Println("error loading race: ", err)
+		return nil, err
+	}
+
+	dbParticipants, err := s.db.GetParticipantsByRaceID(raceID)
+	if err != nil {
+		log.Println("error loading race participants: ", err)
+		return nil, err
+	}
+
+	ps := make([]participants.Participant, len(dbParticipants))
+	for idx, participant := range dbParticipants {
+		ps[idx] = *participants.New(participant)
+	}
+
+	r := races.New(*dbRace)
+	r.Participants = ps
+
+	return r, nil
+}
 
 func (s *Service) SearchRaces(keywords string) ([]races.Race, error) {
 	// filters should be sent in <key>:<value>, ...

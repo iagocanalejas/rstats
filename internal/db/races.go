@@ -23,6 +23,8 @@ type Race struct {
 	LeagueName   sql.NullString `db:"league_name"`
 	LeagueGender sql.NullString `db:"league_gender"`
 
+	AssociatedID sql.NullInt64 `db:"associated_id"`
+
 	Day  int64       `db:"day"`
 	Date pgtype.Date `db:"date"`
 
@@ -32,10 +34,13 @@ type Race struct {
 
 	Laps        sql.NullInt64 `db:"laps"`
 	Lanes       sql.NullInt64 `db:"lanes"`
+	Series      sql.NullInt64 `db:"series"`
 	IsCancelled bool          `db:"cancelled"`
 
 	Town    sql.NullString `db:"town"`
 	Sponsor sql.NullString `db:"sponsor"`
+
+	Metadata sql.NullString `db:"metadata"`
 }
 
 type RaceFilters struct {
@@ -49,6 +54,32 @@ type RaceFilters struct {
 	FlagID        int64
 	Participant   string
 	ParticipantID int64
+}
+
+func (r *Repository) GetRaceByID(raceID int64) (*Race, error) {
+	query, args, err := sq.
+		Select("r.id", "r.day", "r.date", "r.gender", "r.type", "r.modality", "r.laps", "r.lanes", "r.cancelled", "r.town", "r.sponsor", "r.associated_id", "r.metadata",
+			"t.id as trophy_id", "t.name as trophy_name", "r.trophy_edition",
+			"f.id as flag_id", "f.name as flag_name", "r.flag_edition",
+			"l.id as league_id", "l.name as league_name", "l.gender as league_gender",
+			"(SELECT MAX(series) FROM participant WHERE race_id = r.id) as series").
+		From("race r").
+		LeftJoin("trophy t ON r.trophy_id = t.id").
+		LeftJoin("flag f ON r.flag_id = f.id").
+		LeftJoin("league l ON r.league_id = l.id").
+		Where(sq.Eq{"r.id": raceID}).
+		PlaceholderFormat(sq.Dollar).
+		ToSql()
+	if err != nil {
+		return nil, err
+	}
+
+	var race Race
+	if err = r.db.Get(&race, query, args...); err != nil {
+		return nil, err
+	}
+
+	return &race, nil
 }
 
 func (r *Repository) SearchRaces(filters *RaceFilters) ([]Race, error) {

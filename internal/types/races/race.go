@@ -2,15 +2,25 @@ package races
 
 import (
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"strings"
 
 	"github.com/iagocanalejas/regatas/internal/db"
-	"github.com/iagocanalejas/regatas/internal/service/flags"
-	"github.com/iagocanalejas/regatas/internal/service/leagues"
-	"github.com/iagocanalejas/regatas/internal/service/trophies"
+	"github.com/iagocanalejas/regatas/internal/types/flags"
+	"github.com/iagocanalejas/regatas/internal/types/leagues"
+	"github.com/iagocanalejas/regatas/internal/types/participants"
+	"github.com/iagocanalejas/regatas/internal/types/trophies"
 	"github.com/iagocanalejas/regatas/internal/utils"
 )
+
+type RaceMetadata struct {
+	Datasource []struct {
+		DatasourceName *string           `json:"datasource_name"`
+		RefId          *string           `json:"ref_id"`
+		Values         map[string]string `json:"values"`
+	} `json:"datasource"`
+}
 
 type Race struct {
 	ID   int64  `json:"id"`
@@ -29,10 +39,15 @@ type Race struct {
 
 	Laps        sql.NullInt64 `json:"laps"`
 	Lanes       sql.NullInt64 `json:"lanes"`
+	Series      sql.NullInt64 `json:"series"`
 	IsCancelled bool          `json:"cancelled"`
 
 	Town    sql.NullString `json:"town"`
 	Sponsor sql.NullString `json:"sponsor"`
+
+	Metadata *RaceMetadata `json:"metadata"`
+
+	Participants []participants.Participant `json:"participants"`
 }
 
 func New(from db.Race) *Race {
@@ -49,6 +64,11 @@ func New(from db.Race) *Race {
 	var league *leagues.League
 	if from.LeagueID.Valid {
 		league = &leagues.League{ID: from.LeagueID.Int64, Name: from.LeagueName.String}
+	}
+
+	var metadata *RaceMetadata
+	if from.Metadata.Valid {
+		_ = json.Unmarshal([]byte(from.Metadata.String), &metadata)
 	}
 
 	return &Race{
@@ -68,10 +88,13 @@ func New(from db.Race) *Race {
 
 		Laps:        from.Laps,
 		Lanes:       from.Lanes,
+		Series:      from.Series,
 		IsCancelled: from.IsCancelled,
 
 		Town:    from.Town,
 		Sponsor: from.Sponsor,
+
+		Metadata: metadata,
 	}
 }
 

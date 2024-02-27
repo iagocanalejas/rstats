@@ -3,6 +3,7 @@ package tui
 import (
 	"github.com/gdamore/tcell/v2"
 	"github.com/iagocanalejas/regatas/internal/service"
+	"github.com/iagocanalejas/regatas/internal/types/races"
 	"github.com/rivo/tview"
 )
 
@@ -11,8 +12,11 @@ type Application struct {
 
 	service *service.Service
 
-	currentSearch string // current search keywords
-	errorActive   bool   // if the error modal is showing or not
+	race           *races.Race
+	races          []races.Race
+	currentSearch  string // current search keywords
+	hasError       bool   // if the error modal is showing or not
+	showingDetails bool   // if the details view is in display
 
 	flex        *tview.Flex
 	searchInput *tview.InputField
@@ -43,7 +47,7 @@ func (app *Application) initFlex() {
 
 func (app *Application) setupListeners() {
 	app.App.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
-		if app.errorActive {
+		if app.hasError {
 			return event
 		}
 		switch event.Key() {
@@ -55,7 +59,12 @@ func (app *Application) setupListeners() {
 		case tcell.KeyTab:
 			app.nextFocus()
 		case tcell.KeyEsc:
-			app.App.Stop()
+			if app.showingDetails {
+				app.App.SetRoot(app.flex, true)
+				app.showingDetails = false
+			} else {
+				app.App.Stop()
+			}
 		}
 		return event
 	})
@@ -70,7 +79,7 @@ func (app *Application) nextFocus() {
 }
 
 func (app *Application) errorModal(err error) {
-	if app.errorActive {
+	if app.hasError {
 		return
 	}
 
@@ -79,7 +88,7 @@ func (app *Application) errorModal(err error) {
 		AddButtons([]string{"Continue"}).
 		SetDoneFunc(func(buttonIndex int, buttonLabel string) {
 			app.App.SetRoot(app.flex, true).SetFocus(app.flex)
-			app.errorActive = false
+			app.hasError = false
 		})
 
 	modal.
@@ -90,5 +99,5 @@ func (app *Application) errorModal(err error) {
 		SetBorderPadding(2, 2, 2, 2)
 
 	app.App.SetRoot(modal, true).SetFocus(modal)
-	app.errorActive = true
+	app.hasError = true
 }
