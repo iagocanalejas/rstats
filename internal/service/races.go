@@ -24,6 +24,7 @@ func (s *Service) GetRaceByID(raceID int64) (*races.Race, error) {
 		return nil, err
 	}
 
+	// TODO: implement lap normalizations
 	ps := make([]participants.Participant, len(dbParticipants))
 	for idx, participant := range dbParticipants {
 		ps[idx] = *participants.New(participant)

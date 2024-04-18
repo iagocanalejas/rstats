@@ -7,6 +7,7 @@ import (
 	"github.com/rivo/tview"
 )
 
+// TODO: improve this view
 func (app *Application) showDetailsView(raceID int64) {
 	app.showingDetails = true
 	race, err := app.service.GetRaceByID(raceID)
