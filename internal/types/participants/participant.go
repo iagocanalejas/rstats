@@ -3,8 +3,8 @@ package participants
 import (
 	"database/sql"
 
-	"github.com/iagocanalejas/regatas/internal/db"
-	"github.com/iagocanalejas/regatas/internal/types/entities"
+	"github.com/iagocanalejas/rstats/internal/db"
+	"github.com/iagocanalejas/rstats/internal/types/entities"
 )
 
 type Participant struct {

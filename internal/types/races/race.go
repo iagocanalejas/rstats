@@ -6,12 +6,12 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/iagocanalejas/regatas/internal/db"
-	"github.com/iagocanalejas/regatas/internal/types/flags"
-	"github.com/iagocanalejas/regatas/internal/types/leagues"
-	"github.com/iagocanalejas/regatas/internal/types/participants"
-	"github.com/iagocanalejas/regatas/internal/types/trophies"
-	"github.com/iagocanalejas/regatas/internal/utils"
+	"github.com/iagocanalejas/rstats/internal/db"
+	"github.com/iagocanalejas/rstats/internal/types/flags"
+	"github.com/iagocanalejas/rstats/internal/types/leagues"
+	"github.com/iagocanalejas/rstats/internal/types/participants"
+	"github.com/iagocanalejas/rstats/internal/types/trophies"
+	"github.com/iagocanalejas/rstats/internal/utils"
 )
 
 type RaceMetadata struct {
@@ -42,7 +42,6 @@ type Race struct {
 	Series      sql.NullInt64 `json:"series"`
 	IsCancelled bool          `json:"cancelled"`
 
-	Town    sql.NullString `json:"town"`
 	Sponsor sql.NullString `json:"sponsor"`
 
 	Metadata *RaceMetadata `json:"metadata"`
@@ -91,7 +90,6 @@ func New(from db.Race) *Race {
 		Series:      from.Series,
 		IsCancelled: from.IsCancelled,
 
-		Town:    from.Town,
 		Sponsor: from.Sponsor,
 
 		Metadata: metadata,

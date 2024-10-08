@@ -4,7 +4,7 @@ import (
 	"log"
 	"os"
 
-	"github.com/iagocanalejas/regatas/pkg/tui"
+	"github.com/iagocanalejas/rstats/pkg/tui"
 )
 
 func main() {

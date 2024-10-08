@@ -2,8 +2,8 @@ package tui
 
 import (
 	"github.com/gdamore/tcell/v2"
-	"github.com/iagocanalejas/regatas/internal/service"
-	"github.com/iagocanalejas/regatas/internal/types/races"
+	"github.com/iagocanalejas/rstats/internal/service"
+	"github.com/iagocanalejas/rstats/internal/types/races"
 	"github.com/rivo/tview"
 )
 

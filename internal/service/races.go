@@ -6,9 +6,9 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/iagocanalejas/regatas/internal/db"
-	"github.com/iagocanalejas/regatas/internal/types/participants"
-	"github.com/iagocanalejas/regatas/internal/types/races"
+	"github.com/iagocanalejas/rstats/internal/db"
+	"github.com/iagocanalejas/rstats/internal/types/participants"
+	"github.com/iagocanalejas/rstats/internal/types/races"
 )
 
 func (s *Service) GetRaceByID(raceID int64) (*races.Race, error) {

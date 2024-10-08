@@ -37,7 +37,6 @@ type Race struct {
 	Series      sql.NullInt64 `db:"series"`
 	IsCancelled bool          `db:"cancelled"`
 
-	Town    sql.NullString `db:"town"`
 	Sponsor sql.NullString `db:"sponsor"`
 
 	Metadata sql.NullString `db:"metadata"`
@@ -58,7 +57,7 @@ type RaceFilters struct {
 
 func (r *Repository) GetRaceByID(raceID int64) (*Race, error) {
 	query, args, err := sq.
-		Select("r.id", "r.day", "r.date", "r.gender", "r.type", "r.modality", "r.laps", "r.lanes", "r.cancelled", "r.town", "r.sponsor", "r.associated_id", "r.metadata",
+		Select("r.id", "r.day", "r.date", "r.gender", "r.type", "r.modality", "r.laps", "r.lanes", "r.cancelled", "r.sponsor", "r.associated_id", "r.metadata",
 			"t.id as trophy_id", "t.name as trophy_name", "r.trophy_edition",
 			"f.id as flag_id", "f.name as flag_name", "r.flag_edition",
 			"l.id as league_id", "l.name as league_name", "l.gender as league_gender",
@@ -84,7 +83,7 @@ func (r *Repository) GetRaceByID(raceID int64) (*Race, error) {
 
 func (r *Repository) SearchRaces(filters *RaceFilters) ([]Race, error) {
 	baseSelect := sq.
-		Select("r.id", "r.day", "r.date", "r.gender", "r.type", "r.modality", "r.laps", "r.lanes", "r.cancelled", "r.town", "r.sponsor",
+		Select("r.id", "r.day", "r.date", "r.gender", "r.type", "r.modality", "r.laps", "r.lanes", "r.cancelled", "r.sponsor",
 			"t.id as trophy_id", "t.name as trophy_name", "r.trophy_edition as trophy_edition",
 			"f.id as flag_id", "f.name as flag_name", "r.flag_edition as flag_edition",
 			"l.id as league_id", "l.name as league_name", "l.gender as league_gender",

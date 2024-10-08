@@ -6,8 +6,8 @@ import (
 	"os"
 	"strconv"
 
-	"github.com/iagocanalejas/regatas/internal/db"
-	"github.com/iagocanalejas/regatas/internal/service"
+	"github.com/iagocanalejas/rstats/internal/db"
+	"github.com/iagocanalejas/rstats/internal/service"
 	"gonum.org/v1/plot"
 	"gonum.org/v1/plot/plotter"
 	"gonum.org/v1/plot/vg"

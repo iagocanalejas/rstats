@@ -3,7 +3,7 @@ package service
 import (
 	"log"
 
-	"github.com/iagocanalejas/regatas/internal/db"
+	"github.com/iagocanalejas/rstats/internal/db"
 )
 
 func (s *Service) GetSpeedAVGByClubID(clubID int64, filters *db.ParticipantByClubFilters) ([]db.YearSpeeds, error) {

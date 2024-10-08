@@ -73,7 +73,6 @@ package db
 // 	CreationDate        pgtype.Timestamptz
 // 	Laps                pgtype.Int2
 // 	Lanes               pgtype.Int2
-// 	Town                pgtype.Text
 // 	Type                string
 // 	Date                pgtype.Date
 // 	Day                 int16

@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/iagocanalejas/regatas/internal/db"
+	"github.com/iagocanalejas/rstats/internal/db"
 )
 
 type Service struct {
