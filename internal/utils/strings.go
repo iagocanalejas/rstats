@@ -1,5 +1,10 @@
 package utils
 
+import (
+	"strconv"
+	"strings"
+)
+
 func min(a, b, c int) int {
 	if a <= b && a <= c {
 		return a
@@ -42,7 +47,7 @@ func levenshtein(s1, s2 string) int {
 }
 
 var romanSymbols = []struct {
-	Value  int64
+	Value  int16
 	Symbol string
 }{
 	{1000, "M"},
@@ -60,7 +65,7 @@ var romanSymbols = []struct {
 	{1, "I"},
 }
 
-func Int2Roman(num int64) string {
+func Int2Roman(num int16) string {
 	roman := ""
 	for _, symbol := range romanSymbols {
 		for num >= symbol.Value {
@@ -69,4 +74,12 @@ func Int2Roman(num int64) string {
 		}
 	}
 	return roman
+}
+
+func IntSlice2String(slice []int) string {
+	str := ""
+	for _, i := range slice {
+		str += strconv.Itoa(i) + ","
+	}
+	return strings.TrimSuffix(str, ",")
 }

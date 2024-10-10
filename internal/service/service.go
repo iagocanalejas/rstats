@@ -1,10 +1,9 @@
 package service
 
 import (
-	"context"
-	"time"
-
 	"github.com/iagocanalejas/rstats/internal/db"
+	"github.com/iagocanalejas/rstats/internal/types"
+	prettylog "github.com/iagocanalejas/rstats/internal/utils/pretty-log"
 )
 
 type Service struct {
@@ -17,9 +16,35 @@ func Init() *Service {
 	}
 }
 
-func (s *Service) IsHealthy() bool {
-	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
-	defer cancel()
+func (s *Service) GetLeagueByID(leagueID int64) (*types.League, error) {
+	dbLeague, err := s.db.GetLeagueByID(leagueID)
+	if err != nil {
+		prettylog.Error("error loading race: %v", err)
+		return nil, err
+	}
 
-	return s.db.IsHealthy(ctx)
+	l := types.NewLeagueFromDB(dbLeague)
+	return l, nil
+}
+
+func (s *Service) GetFlagByID(flagID int64) (*types.Flag, error) {
+	dbFlag, err := s.db.GetFlagByID(flagID)
+	if err != nil {
+		prettylog.Error("error loading flag: %v", err)
+		return nil, err
+	}
+
+	f := types.NewFlagFromDB(dbFlag, nil)
+	return f, nil
+}
+
+func (s *Service) GetClubByID(clubID int64) (*types.Entity, error) {
+	dbClub, err := s.db.GetClubByID(clubID)
+	if err != nil {
+		prettylog.Error("error loading club: %v", err)
+		return nil, err
+	}
+
+	e := types.NewEntityFromDB(dbClub, nil)
+	return e, nil
 }

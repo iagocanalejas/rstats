@@ -43,20 +43,20 @@ func (app *Application) participantDetails() *tview.Table {
 	table.SetCell(0, 0, &tview.TableCell{Text: "Club Name", Align: tview.AlignCenter, Color: tcell.ColorYellow})
 	table.SetCell(0, 1, &tview.TableCell{Text: "Serie", Align: tview.AlignCenter, Color: tcell.ColorYellow})
 	table.SetCell(0, 2, &tview.TableCell{Text: "Lane", Align: tview.AlignCenter, Color: tcell.ColorYellow})
-	for i := 0; i < int(app.race.Laps.Int64); i++ {
+	for i := 0; i < int(*app.race.Laps); i++ {
 		colIndex := 3 + i
 		table.SetCell(0, colIndex, &tview.TableCell{Text: fmt.Sprintf("Lap %d", i+1), Align: tview.AlignCenter, Color: tcell.ColorYellow})
 	}
-	table.SetCell(0, int(app.race.Laps.Int64)+2, &tview.TableCell{Text: "Time", Align: tview.AlignCenter, Color: tcell.ColorYellow})
+	table.SetCell(0, int(*app.race.Laps)+2, &tview.TableCell{Text: "Time", Align: tview.AlignCenter, Color: tcell.ColorYellow})
 
 	for i, participant := range app.race.Participants {
 		rowIndex := i + 1
 		table.SetCell(rowIndex, 0, &tview.TableCell{Text: participant.Club.Name, Align: tview.AlignLeft})
-		table.SetCell(rowIndex, 1, &tview.TableCell{Text: fmt.Sprintf("%d", participant.Series.Int64), Align: tview.AlignCenter})
-		if participant.Lane.Valid {
-			table.SetCell(rowIndex, 2, &tview.TableCell{Text: fmt.Sprintf("%d", participant.Lane.Int64), Align: tview.AlignCenter})
+		table.SetCell(rowIndex, 1, &tview.TableCell{Text: fmt.Sprintf("%d", *participant.Series), Align: tview.AlignCenter})
+		if participant.Lane != nil {
+			table.SetCell(rowIndex, 2, &tview.TableCell{Text: fmt.Sprintf("%d", *participant.Lane), Align: tview.AlignCenter})
 		}
-		for j, lap := range participant.Laps {
+		for j, lap := range *participant.Laps {
 			colIndex := 3 + j
 			table.SetCell(rowIndex, colIndex, &tview.TableCell{Text: fmt.Sprintf("%v", lap), Align: tview.AlignLeft})
 		}

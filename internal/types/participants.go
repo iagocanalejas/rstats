@@ -1,10 +1,7 @@
-package participants
+package types
 
 import (
-	"database/sql"
-
 	"github.com/iagocanalejas/rstats/internal/db"
-	"github.com/iagocanalejas/rstats/internal/types/entities"
 )
 
 type Participant struct {
@@ -14,21 +11,17 @@ type Participant struct {
 	Category string `json:"category"`
 	Distance int    `json:"distance"`
 
-	Club *entities.Entity `json:"club"`
+	Club *Entity `json:"club"`
 
 	IsDisqualified bool `json:"disqualified"`
 
-	Laps   []string      `json:"laps"`
-	Lane   sql.NullInt64 `json:"lane"`
-	Series sql.NullInt64 `json:"series"`
+	Laps   *[]string `json:"laps"`
+	Lane   *int16    `json:"lane"`
+	Series *int16    `json:"series"`
 }
 
-func New(from db.Participant) *Participant {
-	club := &entities.Entity{
-		ID:      from.ClubId,
-		Name:    from.ClubName,
-		RawName: from.ClubRawName,
-	}
+func NewParticipantFromDB(from *db.ParticipantRow) *Participant {
+	club := NewEntityFromDB(&db.EntityRow{ID: from.ClubId, Name: from.ClubName}, (*[]string)(from.ClubRawNames))
 
 	return &Participant{
 		ID: from.ID,
@@ -41,7 +34,7 @@ func New(from db.Participant) *Participant {
 
 		IsDisqualified: false,
 
-		Laps:   from.Laps,
+		Laps:   (*[]string)(from.Laps),
 		Lane:   from.Lane,
 		Series: from.Series,
 	}

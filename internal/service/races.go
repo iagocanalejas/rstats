@@ -2,64 +2,61 @@ package service
 
 import (
 	"fmt"
-	"log"
 	"strconv"
 	"strings"
 
 	"github.com/iagocanalejas/rstats/internal/db"
-	"github.com/iagocanalejas/rstats/internal/types/participants"
-	"github.com/iagocanalejas/rstats/internal/types/races"
+	"github.com/iagocanalejas/rstats/internal/types"
+	"github.com/iagocanalejas/rstats/internal/utils/assert"
+	prettylog "github.com/iagocanalejas/rstats/internal/utils/pretty-log"
 )
 
-func (s *Service) GetRaceByID(raceID int64) (*races.Race, error) {
+func (s *Service) GetRaceByID(raceID int64) (*types.Race, error) {
 	dbRace, err := s.db.GetRaceByID(raceID)
 	if err != nil {
-		log.Println("error loading race: ", err)
+		prettylog.Error("error loading race: %v", err)
 		return nil, err
 	}
 
 	dbParticipants, err := s.db.GetParticipantsByRaceID(raceID)
 	if err != nil {
-		log.Println("error loading race participants: ", err)
+		prettylog.Error("error loading participants: %v", err)
 		return nil, err
 	}
 
 	// TODO: implement lap normalizations
-	ps := make([]participants.Participant, len(dbParticipants))
+	ps := make([]types.Participant, len(dbParticipants))
 	for idx, participant := range dbParticipants {
-		ps[idx] = *participants.New(participant)
+		ps[idx] = *types.NewParticipantFromDB(&participant)
 	}
 
-	r := races.New(*dbRace)
+	r := types.NewRaceFromDB(dbRace)
 	r.Participants = ps
 
 	return r, nil
 }
 
-func (s *Service) SearchRaces(keywords string) ([]races.Race, error) {
+func (s *Service) SearchRaces(keywords string) ([]types.Race, error) {
 	// filters should be sent in <key>:<value>, ...
 	filters, err := buildFilters(keywords)
-	if err != nil {
-		log.Println("error building filters: ", err)
-		return nil, err
-	}
+	assert.NoError(err, "building filters", "keywords", keywords)
 
-	log.Printf("searching for races with: %+v", *filters)
+	prettylog.Debug("searching races with filters=%v", *filters)
 	flatRaces, err := s.db.SearchRaces(filters)
 	if err != nil {
-		log.Println("error loading races: ", err)
+		prettylog.Error("error searching races: %v", err)
 		return nil, err
 	}
 
-	rs := make([]races.Race, len(flatRaces))
+	rs := make([]types.Race, len(flatRaces))
 	for idx, race := range flatRaces {
-		rs[idx] = *races.New(race)
+		rs[idx] = *types.NewRaceFromDB(&race)
 	}
 	return rs, nil
 }
 
-func buildFilters(k string) (*db.RaceFilters, error) {
-	filter := db.RaceFilters{}
+func buildFilters(k string) (*db.SearchRaceParams, error) {
+	filter := db.SearchRaceParams{}
 	for _, part := range strings.Split(k, ",") {
 		if !strings.Contains(part, ":") {
 			filter.Keywords = strings.TrimSpace(part)
@@ -79,7 +76,7 @@ func buildFilters(k string) (*db.RaceFilters, error) {
 			if err != nil {
 				return nil, fmt.Errorf("error parsing number from: %s", value)
 			}
-			filter.Year = year
+			filter.Year = int16(year)
 		case "flag":
 			filter.Flag = value
 		case "flag_id":

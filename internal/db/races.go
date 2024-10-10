@@ -1,50 +1,75 @@
 package db
 
 import (
-	"database/sql"
 	"fmt"
 
 	sq "github.com/Masterminds/squirrel"
+	"github.com/iagocanalejas/rstats/internal/utils/assert"
 	"github.com/jackc/pgx/pgtype"
 )
 
-type Race struct {
+type RaceRow struct {
 	ID int64 `db:"id"`
 
-	TrophyID      sql.NullInt64  `db:"trophy_id"`
-	TrophyName    sql.NullString `db:"trophy_name"`
-	TrophyEdition sql.NullInt64  `db:"trophy_edition"`
+	TrophyID      *int64  `db:"trophy_id"`
+	TrophyName    *string `db:"trophy_name"`
+	TrophyEdition *int16  `db:"trophy_edition"`
 
-	FlagID      sql.NullInt64  `db:"flag_id"`
-	FlagName    sql.NullString `db:"flag_name"`
-	FlagEdition sql.NullInt64  `db:"flag_edition"`
+	FlagID      *int64  `db:"flag_id"`
+	FlagName    *string `db:"flag_name"`
+	FlagEdition *int16  `db:"flag_edition"`
 
-	LeagueID     sql.NullInt64  `db:"league_id"`
-	LeagueName   sql.NullString `db:"league_name"`
-	LeagueGender sql.NullString `db:"league_gender"`
+	LeagueID       *int64  `db:"league_id"`
+	LeagueName     *string `db:"league_name"`
+	LeagueGender   *string `db:"league_gender"`
+	LeagueCategory *string `db:"league_category"`
 
-	AssociatedID sql.NullInt64 `db:"associated_id"`
+	AssociatedID *int64 `db:"associated_id"`
 
-	Day  int64       `db:"day"`
+	Day  int16       `db:"day"`
 	Date pgtype.Date `db:"date"`
 
 	Gender   string `db:"gender"`
 	Type     string `db:"type"`
 	Modality string `db:"modality"`
 
-	Laps        sql.NullInt64 `db:"laps"`
-	Lanes       sql.NullInt64 `db:"lanes"`
-	Series      sql.NullInt64 `db:"series"`
-	IsCancelled bool          `db:"cancelled"`
+	Laps        *int16 `db:"laps"`
+	Lanes       *int16 `db:"lanes"`
+	Series      *int16 `db:"series"`
+	IsCancelled bool   `db:"cancelled"`
 
-	Sponsor sql.NullString `db:"sponsor"`
+	Sponsor *string `db:"sponsor"`
 
-	Metadata sql.NullString `db:"metadata"`
+	Metadata []byte `db:"metadata"`
 }
 
-type RaceFilters struct {
+func (r *Repository) GetRaceByID(raceID int64) (*RaceRow, error) {
+	query, args, err := sq.
+		Select("r.id", "r.day", "r.date", "r.gender", "r.type", "r.modality", "r.laps", "r.lanes", "r.cancelled", "r.sponsor", "r.associated_id", "r.metadata",
+			"t.id as trophy_id", "t.name as trophy_name", "r.trophy_edition",
+			"f.id as flag_id", "f.name as flag_name", "r.flag_edition",
+			"l.id as league_id", "l.name as league_name", "l.gender as league_gender", "l.category as league_category",
+			"(SELECT MAX(series) FROM participant WHERE race_id = r.id) as series").
+		From("race r").
+		LeftJoin("trophy t ON r.trophy_id = t.id").
+		LeftJoin("flag f ON r.flag_id = f.id").
+		LeftJoin("league l ON r.league_id = l.id").
+		Where(sq.Eq{"r.id": raceID}).
+		PlaceholderFormat(sq.Dollar).
+		ToSql()
+	assert.NoError(err, "building query", "query", query, "args", args)
+
+	var race RaceRow
+	if err = r.db.Get(&race, query, args...); err != nil {
+		return nil, err
+	}
+
+	return &race, nil
+}
+
+type SearchRaceParams struct {
 	Keywords      string
-	Year          int64
+	Year          int16
 	League        string
 	LeagueID      int64
 	Trophy        string
@@ -55,38 +80,12 @@ type RaceFilters struct {
 	ParticipantID int64
 }
 
-func (r *Repository) GetRaceByID(raceID int64) (*Race, error) {
-	query, args, err := sq.
-		Select("r.id", "r.day", "r.date", "r.gender", "r.type", "r.modality", "r.laps", "r.lanes", "r.cancelled", "r.sponsor", "r.associated_id", "r.metadata",
-			"t.id as trophy_id", "t.name as trophy_name", "r.trophy_edition",
-			"f.id as flag_id", "f.name as flag_name", "r.flag_edition",
-			"l.id as league_id", "l.name as league_name", "l.gender as league_gender",
-			"(SELECT MAX(series) FROM participant WHERE race_id = r.id) as series").
-		From("race r").
-		LeftJoin("trophy t ON r.trophy_id = t.id").
-		LeftJoin("flag f ON r.flag_id = f.id").
-		LeftJoin("league l ON r.league_id = l.id").
-		Where(sq.Eq{"r.id": raceID}).
-		PlaceholderFormat(sq.Dollar).
-		ToSql()
-	if err != nil {
-		return nil, err
-	}
-
-	var race Race
-	if err = r.db.Get(&race, query, args...); err != nil {
-		return nil, err
-	}
-
-	return &race, nil
-}
-
-func (r *Repository) SearchRaces(filters *RaceFilters) ([]Race, error) {
+func (r *Repository) SearchRaces(filters *SearchRaceParams) ([]RaceRow, error) {
 	baseSelect := sq.
 		Select("r.id", "r.day", "r.date", "r.gender", "r.type", "r.modality", "r.laps", "r.lanes", "r.cancelled", "r.sponsor",
 			"t.id as trophy_id", "t.name as trophy_name", "r.trophy_edition as trophy_edition",
 			"f.id as flag_id", "f.name as flag_name", "r.flag_edition as flag_edition",
-			"l.id as league_id", "l.name as league_name", "l.gender as league_gender",
+			"l.id as league_id", "l.name as league_name", "l.gender as league_gender", "l.category as league_category",
 		).
 		From("race r").
 		LeftJoin("trophy t ON t.id = r.trophy_id").
@@ -155,11 +154,9 @@ func (r *Repository) SearchRaces(filters *RaceFilters) ([]Race, error) {
 		OrderBy("date DESC, league_id").
 		PlaceholderFormat(sq.Dollar).
 		ToSql()
-	if err != nil {
-		return nil, err
-	}
+	assert.NoError(err, "building query", "query", query, "args", args)
 
-	var races []Race
+	var races []RaceRow
 	if err = r.db.Select(&races, query, args...); err != nil {
 		return nil, err
 	}
