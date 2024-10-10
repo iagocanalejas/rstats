@@ -3,7 +3,7 @@ package tui
 import (
 	"github.com/gdamore/tcell/v2"
 	"github.com/iagocanalejas/rstats/internal/service"
-	"github.com/iagocanalejas/rstats/internal/types/races"
+	"github.com/iagocanalejas/rstats/internal/types"
 	"github.com/rivo/tview"
 )
 
@@ -12,8 +12,8 @@ type Application struct {
 
 	service *service.Service
 
-	race           *races.Race
-	races          []races.Race
+	race           *types.Race
+	races          []types.Race
 	currentSearch  string // current search keywords
 	hasError       bool   // if the error modal is showing or not
 	showingDetails bool   // if the details view is in display

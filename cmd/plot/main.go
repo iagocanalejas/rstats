@@ -1,79 +1,164 @@
 package main
 
 import (
-	"flag"
-	"log"
-	"os"
-	"strconv"
+	"fmt"
+	"strings"
 
-	"github.com/iagocanalejas/rstats/internal/db"
 	"github.com/iagocanalejas/rstats/internal/service"
-	"gonum.org/v1/plot"
-	"gonum.org/v1/plot/plotter"
-	"gonum.org/v1/plot/vg"
+	"github.com/iagocanalejas/rstats/internal/types"
+	"github.com/iagocanalejas/rstats/internal/utils/assert"
+	prettylog "github.com/iagocanalejas/rstats/internal/utils/pretty-log"
+	"github.com/iagocanalejas/rstats/pkg/plotter"
+	"github.com/spf13/pflag"
 )
 
 func main() {
-	setupFileLogger()
+	pflag.StringVarP(&plotType, "type", "t", plotter.BOXPLOT, fmt.Sprintf("plot type. Available types: %s", strings.Join([]string{plotter.BOXPLOT, plotter.LINE, plotter.NTH_SPEED}, ", ")))
+	pflag.IntVarP(&index, "index", "i", 0, "position to plot the speeds in 'nth' charts")
+	pflag.IntVarP(&clubID, "club", "c", 0, "club ID for which to load the data")
+	pflag.IntVarP(&leagueID, "league", "l", 0, "league ID for which to load the data")
+	pflag.IntVarP(&flagID, "flag", "f", 0, "flagID for which to load the data")
+	pflag.StringVarP(&gender, "gender", "g", types.GENDER_MALE, "gender filter")
+	pflag.StringVar(&category, "category", types.CATEGORY_ABSOLUT, "category filter")
+	pflag.VarP(&years, "years", "y", "years to include in the data (can specify multiple times)")
+	pflag.IntVarP(&day, "day", "d", 1, "day of the race for multiday races")
+	pflag.BoolVar(&leaguesOnly, "leagues-only", false, "only races from a league")
+	pflag.BoolVar(&branchTeams, "branch-teams", false, "filter only branch teams")
+	pflag.BoolVarP(&normalize, "normalize", "n", false, "exclude outliers based on the speeds' standard deviation")
+	pflag.StringVarP(&output, "output", "o", "", "saves the output plot")
+	pflag.BoolVarP(&verbose, "verbose", "v", false, "define log level to DEBUG")
 
-	clubID, err := strconv.Atoi(os.Args[1])
-	if err != nil || clubID == 0 {
-		panic("clubID is required")
+	s := service.Init()
+	config := parseArgs(s)
+
+	if verbose {
+		prettylog.SetLevel(prettylog.DEBUG)
+		prettylog.Debug("config=%v", *config)
 	}
 
-	filters := &db.ParticipantByClubFilters{}
+	plotter.PlotStats(s, config)
+}
 
-	var is_female bool
-	flag.BoolVar(&is_female, "female", false, "female races.")
-	if is_female {
-		filters.Gender = "FEMALE"
-	} else {
-		filters.Gender = "MALE"
+func parseArgs(service *service.Service) *plotter.PlotConfig {
+	pflag.Parse()
+
+	assert.Contains(gender, []any{types.GENDER_ALL, types.GENDER_MALE, types.GENDER_FEMALE, types.GENDER_MIX}, "invalid gender=%s", gender)
+	assert.Contains(category, []any{types.CATEGORY_ABSOLUT, types.CATEGORY_SCHOOL, types.CATEGORY_VETERAN}, "invalid category=%s", category)
+	assert.Contains(plotType, []any{plotter.BOXPLOT, plotter.LINE, plotter.NTH_SPEED}, "invalid plotType=%s", plotType)
+	assert.Assert(plotType != plotter.NTH_SPEED || len(years) > 0, "plotType=%s requires at least one year", plotType)
+	assert.Assert(plotType != plotter.NTH_SPEED || index > 0, "plotType=%s requires an index", plotType)
+
+	validBoxplot := plotType == plotter.BOXPLOT && (clubID > 0 || leagueID > 0)
+	validNthPlot := plotType == plotter.NTH_SPEED && leagueID > 0 && len(years) > 0 && index > 0
+	validLinePlot := plotType == plotter.LINE && (clubID > 0 || flagID > 0) && len(years) > 0
+	assert.Assert(validBoxplot || validNthPlot || validLinePlot, "invalid plot configuration")
+
+	var err error
+	var club *types.Entity
+	if clubID > 0 {
+		club, err = service.GetClubByID(int64(clubID))
+		assert.NotNil(club, "invalid clubID=%d", clubID)
+		assert.NoError(err, "invalid clubID=%d", clubID)
 	}
 
-	flag.BoolVar(&filters.OnlyLeagueRaces, "league", false, "only races from a league.")
-	flag.BoolVar(&filters.BranchTeams, "branch", false, "only branch teams.")
-
-	service := service.Init()
-	speeds, err := service.GetSpeedAVGByClubID(int64(clubID), filters)
-	if err != nil {
-		panic(err)
+	var flag *types.Flag
+	if flagID > 0 {
+		flag, err = service.GetFlagByID(int64(flagID))
+		assert.NotNil(flag, "invalid flagID=%d", flagID)
+		assert.NoError(err, "invalid flagID=%d", flagID)
 	}
 
-	p := plot.New()
+	var league *types.League
+	if leagueID > 0 {
+		league, err = service.GetLeagueByID(int64(leagueID))
+		assert.NotNil(league, "invalid leagueID=%d", leagueID)
+		assert.NoError(err, "invalid leagueID=%d", leagueID)
 
-	years := make([]string, len(speeds))
-	for i, speed := range speeds {
-		values := make(plotter.Values, len(speed.Speeds))
-		for i, v := range speed.Speeds {
-			values[i] = v
+		if branchTeams {
+			prettylog.Info("branch_teams is not supported with leagues, ignoring it")
+			branchTeams = false
 		}
 
-		boxplot, err := plotter.NewBoxPlot(vg.Points(20), float64(i), values)
-		if err != nil {
-			panic(err)
+		if league.Gender != nil && gender != *league.Gender {
+			prettylog.Info("given gender=%s does not match %s, using league's one", gender, *league.Gender)
+			gender = *league.Gender
 		}
 
-		p.Add(boxplot)
-		years[i] = strconv.Itoa(int(speed.Year))
+		if league.Category != nil && category != *league.Category {
+			prettylog.Info("given category=%s does not match %s, using league's one", category, *league.Category)
+			category = *league.Category
+		}
 	}
 
-	p.Title.Text = "Speeds by Year"
-	p.X.Label.Text = "Year"
-	p.Y.Label.Text = "Speed"
-	p.NominalX(years...)
-
-	if err := p.Save(8*vg.Inch, 4*vg.Inch, "speeds_by_year.png"); err != nil {
-		panic(err)
+	return &plotter.PlotConfig{
+		Index:       index,
+		Club:        club,
+		League:      league,
+		Flag:        flag,
+		PlotType:    plotType,
+		Gender:      gender,
+		Category:    category,
+		Years:       years,
+		Day:         day,
+		Normalize:   normalize,
+		LeaguesOnly: leaguesOnly,
+		BranchTeams: branchTeams,
+		Output:      output,
 	}
 }
 
-func setupFileLogger() {
-	f, err := os.OpenFile("logs.log", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0o644)
-	if err != nil {
-		log.Fatalf("error opening log file: %v", err)
-	}
+var (
+	plotType string
+	index    int
+	clubID   int
+	leagueID int
+	flagID   int
+	gender   string
+	category string
+	years    yearsFlag
+	day      int
 
-	log.SetOutput(f)
-	log.SetFlags(log.Lshortfile | log.LstdFlags)
+	leaguesOnly bool
+	branchTeams bool
+	normalize   bool
+	output      string
+	verbose     bool
+)
+
+type yearsFlag []int
+
+func (y *yearsFlag) String() string {
+	return fmt.Sprint(*y)
+}
+
+func (y *yearsFlag) Set(value string) error {
+	if strings.Contains(value, ",") {
+		years := strings.Split(value, ",")
+		for _, year := range years {
+			var parsedYear int
+			fmt.Sscanf(year, "%d", &parsedYear)
+			*y = append(*y, parsedYear)
+		}
+	} else if strings.Contains(value, "..") {
+		limits := strings.Split(value, "..")
+		assert.Assert(len(limits) == 2, "invalid year limits=%s", limits)
+
+		var start, end int
+		fmt.Sscanf(limits[0], "%d", &start)
+		fmt.Sscanf(limits[1], "%d", &end)
+		assert.Assert(start > 0 && end > 0, "invalid year limits: start=%s end=%s", start, end)
+
+		for i := start; i <= end; i++ {
+			*y = append(*y, i)
+		}
+	} else {
+		var year int
+		fmt.Sscanf(value, "%d", &year)
+		*y = append(*y, year)
+	}
+	return nil
+}
+
+func (y *yearsFlag) Type() string {
+	return "yearsFlag"
 }
