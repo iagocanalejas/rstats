@@ -17,7 +17,7 @@ func (r *Repository) GetTrophyByID(trophyID int64) (*TrophyRow, error) {
 		Where(sq.Eq{"t.id": trophyID}).
 		PlaceholderFormat(sq.Dollar).
 		ToSql()
-	assert.NoError(err, "building query", "query", query, "args", args)
+	assert.NoError(err, "building query=%s args=%s", query, args)
 
 	var trophy TrophyRow
 	if err = r.db.Get(&trophy, query, args...); err != nil {

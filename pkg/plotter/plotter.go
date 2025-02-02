@@ -49,18 +49,18 @@ func PlotStats(s *service.Service, config *PlotConfig) error {
 	prettylog.Info("loading data")
 	label := label(config.Index, config.Club, config.League, config.Normalize)
 
-	var years *[]int
+	var years []int
 	var data *map[int][]float64
 	var err error
 	if config.PlotType == NTH_SPEED {
-		years = &config.Years
-		sort.Ints(*years)
+		years = config.Years
+		sort.Ints(years)
 
 		var wg sync.WaitGroup
 		var mu sync.Mutex
 
 		d := make(map[int][]float64)
-		for _, year := range *years {
+		for _, year := range years {
 			wg.Add(1)
 
 			go func(year int) {
@@ -82,7 +82,7 @@ func PlotStats(s *service.Service, config *PlotConfig) error {
 				assert.NoError(err, "loading data for year=%d with config=%v", year, *config)
 
 				mu.Lock()
-				d[year] = *speeds
+				d[year] = speeds
 				mu.Unlock()
 			}(year)
 		}
@@ -117,12 +117,12 @@ func PlotStats(s *service.Service, config *PlotConfig) error {
 	return nil
 }
 
-func boxplot(label string, data *map[int][]float64, years *[]int, output string) error {
+func boxplot(label string, data *map[int][]float64, years []int, output string) error {
 	prettylog.Info("boxplotting")
 	p := plot.New()
 
 	boxplotIdx := 0
-	for _, year := range *years {
+	for _, year := range years {
 		speeds := (*data)[year]
 		values := make(plotter.Values, len(speeds))
 		for i, v := range speeds {
@@ -130,7 +130,7 @@ func boxplot(label string, data *map[int][]float64, years *[]int, output string)
 		}
 
 		boxplot, err := plotter.NewBoxPlot(vg.Points(20), float64(boxplotIdx), values)
-		assert.NoError(err, "plotting boxplot", year, values)
+		assert.NoError(err, "plotting boxplot year=%d values=%v", year, values)
 
 		p.Add(boxplot)
 		boxplotIdx++
@@ -138,7 +138,7 @@ func boxplot(label string, data *map[int][]float64, years *[]int, output string)
 
 	p.Title.Text = label
 	p.X.Label.Text = "Año"
-	p.X.Tick.Marker = yearMarker{Years: *years}
+	p.X.Tick.Marker = yearMarker{Years: years}
 	p.Y.Label.Text = "Velocidades"
 	p.Y.Tick.Marker = quarterTicker{}
 
@@ -147,21 +147,21 @@ func boxplot(label string, data *map[int][]float64, years *[]int, output string)
 	return err
 }
 
-func lineplot(label string, data *map[int][]float64, years *[]int, output string) error {
+func lineplot(label string, data *map[int][]float64, years []int, output string) error {
 	prettylog.Info("lineplotting")
 	p := plot.New()
 
-	lines := make([]plot.Plotter, len(*years))
+	lines := make([]plot.Plotter, len(years))
 	lineplotIdx := 0
 	maxValues := 0
-	for _, year := range *years {
+	for _, year := range years {
 		pts := make(plotter.XYs, len((*data)[year]))
 		for i := range (*data)[year] {
 			pts[i].X = float64(i)
 			pts[i].Y = (*data)[year][i]
 		}
 		line, err := plotter.NewLine(pts)
-		assert.NoError(err, "error generating line", year)
+		assert.NoError(err, "error generating line for year=%d", year)
 
 		line.Color = plotutil.DefaultColors[lineplotIdx]
 		lines[lineplotIdx] = line

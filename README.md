@@ -84,6 +84,28 @@ go run cmd/plot/main.go -t line -f 12 -y 2021..2023 -o ~/Downloads/p.png
 parallel -j 11 go run cmd/plot/main.go --league {} -o ~/Downloads/l{}.png ::: $(seq 1 11)
 ```
 
+# Search Outliers
+
+Search for outliers in the data.
+
+```sh
+go run cmd/outliers/main.go \
+	[-t, --threshold, THRESHOLD] \
+	[--exclude EXCLUDED_RACE_IDS] \
+	[--limit, -l] \
+	[-v, --verbose]
+
+# options:
+#   -t THRESHOLD, --threshold THRESHOLD
+#                         threshold to consider a value an outlier.
+#   --exclude EXCLUDED_RACE_IDS
+#                         races that will be ignored.
+#   -l, --limit
+#                         apply spped limits (8.0, 20.0) for outlier detection.
+#   -v, --verbose
+#                         increase output verbosity.
+```
+
 # Terminal UI for regatas
 
 ```sh

@@ -5,14 +5,15 @@ import (
 	"strings"
 
 	sq "github.com/Masterminds/squirrel"
-	"github.com/iagocanalejas/rstats/internal/utils"
 	"github.com/iagocanalejas/rstats/internal/utils/assert"
 	prettylog "github.com/iagocanalejas/rstats/internal/utils/pretty-log"
+	"github.com/iagocanalejas/rstats/internal/utils/strings"
 	"github.com/lib/pq"
 )
 
 type ParticipantRow struct {
-	ID int64 `db:"id"`
+	ID     int64 `db:"id"`
+	RaceID int64 `db:"race_id"`
 
 	Gender   string `db:"gender"`
 	Category string `db:"category"`
@@ -31,7 +32,8 @@ type ParticipantRow struct {
 
 func (r *Repository) GetParticipantsByRaceID(raceID int64) ([]ParticipantRow, error) {
 	query, args, err := sq.
-		Select("p.id", "p.gender", "p.category", "p.distance", "p.laps", "p.lane", "p.series", "p.club_id as club_id", "e.name as club_name", "p.club_names as club_raw_names",
+		Select("p.id", "p.race_id", "p.gender", "p.category", "p.distance", "p.laps", "p.lane", "p.series",
+			"p.club_id as club_id", "e.name as club_name", "p.club_names as club_raw_names",
 			"((SELECT count(*) FROM penalty pe WHERE pe.participant_id = p.id AND disqualification) > 0) as disqualified").
 		From("participant p").
 		LeftJoin("entity e ON p.club_id = e.id").
@@ -39,11 +41,70 @@ func (r *Repository) GetParticipantsByRaceID(raceID int64) ([]ParticipantRow, er
 		OrderBy("p.laps[ARRAY_UPPER(p.laps, 1)] ASC").
 		PlaceholderFormat(sq.Dollar).
 		ToSql()
-	assert.NoError(err, "building query", "query", query, "args", args)
+	assert.NoError(err, "building query=%s args=%s", query, args)
 
 	var participants []ParticipantRow
 	if err = r.db.Select(&participants, query, args...); err != nil {
-		return make([]ParticipantRow, 0), err
+		participants = make([]ParticipantRow, 0)
+	}
+
+	return participants, nil
+}
+
+type ParticipantRowWithSpeed struct {
+	ID     int64 `db:"id"`
+	RaceID int64 `db:"race_id"`
+
+	Gender   string `db:"gender"`
+	Category string `db:"category"`
+	Distance int    `db:"distance"`
+
+	ClubId       int64           `db:"club_id"`
+	ClubName     string          `db:"club_name"`
+	ClubRawNames *pq.StringArray `db:"club_raw_names"`
+
+	IsDisqualified bool `db:"disqualified"`
+
+	Laps   *pq.StringArray `db:"laps"`
+	Lane   *int16          `db:"lane"`
+	Series *int16          `db:"series"`
+
+	Speed float64 `db:"speed"`
+}
+
+func (r *Repository) GetParticipantsWithSpeed() ([]ParticipantRowWithSpeed, error) {
+	rawQuery := fmt.Sprintf(`
+		SELECT
+			p.id, p.race_id, p.gender, p.category, p.distance, p.laps, p.lane, p.series,
+			p.club_id as club_id, e.name as club_name, p.club_names as club_raw_names,
+			CAST((p.distance / (extract(EPOCH FROM p.laps[cardinality(p.laps)]))) * 3.6 AS DOUBLE PRECISION) AS speed
+		FROM participant p
+			JOIN race r ON p.race_id = r.id
+			LEFT JOIN entity e ON p.club_id = e.id
+		WHERE p.laps <> '{}'
+			AND p.distance IS NOT NULL
+			AND NOT r.cancelled
+			AND NOT p.retired
+			AND NOT p.guest
+			AND p.category = 'ABSOLUT'
+			AND (extract(EPOCH FROM p.laps[cardinality(p.laps)]) > 0)
+			AND NOT EXISTS(SELECT * FROM penalty WHERE participant_id = p.id AND disqualification)
+		ORDER BY p.race_id, p.gender, p.category;
+	`)
+	prettylog.Debug("%s", rawQuery)
+
+	rows, err := r.db.Query(rawQuery)
+	assert.NoError(err, "failed to execute query=%s", rawQuery)
+	defer rows.Close()
+
+	participants := make([]ParticipantRowWithSpeed, 0)
+
+	var p ParticipantRowWithSpeed
+	for rows.Next() {
+		err := rows.Scan(&p.ID, &p.RaceID, &p.Gender, &p.Category, &p.Distance, &p.Laps, &p.Lane, &p.Series, &p.ClubId, &p.ClubName, &p.ClubRawNames, &p.Speed)
+		assert.NoError(err, "failed to scan row participant=%v", p)
+
+		participants = append(participants, p)
 	}
 
 	return participants, nil
@@ -71,7 +132,7 @@ type GetYearSpeedsByParams struct {
 //  2. **Subquery**: Filters are applied to the races and participants based on the provided parameters (e.g., ClubID, LeagueID).
 //  3. **Normalization** (optional): If enabled, speeds that fall outside two standard deviations from the mean are excluded.
 //  4. **Main Query**: Aggregates speeds for each year using `array_agg`, and groups the results by year.
-func (r *Repository) GetYearSpeedsBy(params *GetYearSpeedsByParams) (*[]int, *map[int][]float64, error) {
+func (r *Repository) GetYearSpeedsBy(params *GetYearSpeedsByParams) ([]int, *map[int][]float64, error) {
 	subqueryWhere := getSpeedFilters(
 		params.ClubID, params.LeagueID, params.FlagID,
 		params.Gender, params.Category,
@@ -124,7 +185,7 @@ func (r *Repository) GetYearSpeedsBy(params *GetYearSpeedsByParams) (*[]int, *ma
 	prettylog.Debug("%s", rawQuery)
 
 	rows, err := r.db.Query(rawQuery)
-	assert.NoError(err, "failed to execute query", "query", rawQuery)
+	assert.NoError(err, "failed to execute query=%s", rawQuery)
 	defer rows.Close()
 
 	years := make([]int, 0)
@@ -135,13 +196,13 @@ func (r *Repository) GetYearSpeedsBy(params *GetYearSpeedsByParams) (*[]int, *ma
 
 	for rows.Next() {
 		err := rows.Scan(&year, pq.Array(&speedArray))
-		assert.NoError(err, "failed to scan row", "year", year, "speeds", speedArray)
+		assert.NoError(err, "failed to scan row year=%d speeds=%f", year, speedArray)
 
 		years = append(years, year)
 		speeds[year] = append([]float64(nil), speedArray...)
 	}
 
-	return &years, &speeds, nil
+	return years, &speeds, nil
 }
 
 type GetNthSpeedsByParams struct {
@@ -167,9 +228,9 @@ type GetNthSpeedsByParams struct {
 //  2. **Subquery**: Filters are applied to the races and participants based on the provided parameters (e.g., ClubID, Gender, Year).
 //  3. **Normalization** (optional): If normalization is enabled, speeds outside two standard deviations from the mean are excluded.
 //  4. **Main Query**: Retrieves the N-th highest speed for each race using `array_agg` and returns only races where there are at least N speeds.
-func (r *Repository) GetNthSpeedsBy(params *GetNthSpeedsByParams) (*[]float64, error) {
-	assert.Assert(params.Index > 0, "no index provided", *params)
-	assert.Assert(params.Year > 0, "no year provided", *params)
+func (r *Repository) GetNthSpeedsBy(params *GetNthSpeedsByParams) ([]float64, error) {
+	assert.Assert(params.Index > 0, "no index provided %v", *params)
+	assert.Assert(params.Year > 0, "no year provided %v", *params)
 
 	subqueryWhere := getSpeedFilters(
 		params.ClubID, params.LeagueID, 0,
@@ -212,7 +273,7 @@ func (r *Repository) GetNthSpeedsBy(params *GetNthSpeedsByParams) (*[]float64, e
 	prettylog.Debug("%s", rawQuery)
 
 	rows, err := r.db.Query(rawQuery)
-	assert.NoError(err, "failed to execute query", "query", rawQuery)
+	assert.NoError(err, "failed to execute query=%s", rawQuery)
 	defer rows.Close()
 
 	speeds := make([]float64, 0)
@@ -221,12 +282,12 @@ func (r *Repository) GetNthSpeedsBy(params *GetNthSpeedsByParams) (*[]float64, e
 	var speed float64
 	for rows.Next() {
 		err := rows.Scan(&raceID, &speed)
-		assert.NoError(err, "failed to scan row", "raceID", raceID, "speed", speed)
+		assert.NoError(err, "failed to scan row raceID=%d speed=%f", raceID, speed)
 
 		speeds = append(speeds, speed)
 	}
 
-	return &speeds, nil
+	return speeds, nil
 }
 
 func getSpeedFilters(

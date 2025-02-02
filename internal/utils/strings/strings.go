@@ -5,7 +5,7 @@ import (
 	"strings"
 )
 
-func min(a, b, c int) int {
+func Min(a, b, c int) int {
 	if a <= b && a <= c {
 		return a
 	} else if b <= a && b <= c {
@@ -14,7 +14,7 @@ func min(a, b, c int) int {
 	return c
 }
 
-func levenshtein(s1, s2 string) int {
+func Levenshtein(s1, s2 string) int {
 	m := len(s1)
 	n := len(s2)
 

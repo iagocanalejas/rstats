@@ -39,7 +39,7 @@ func (s *Service) GetRaceByID(raceID int64) (*types.Race, error) {
 func (s *Service) SearchRaces(keywords string) ([]types.Race, error) {
 	// filters should be sent in <key>:<value>, ...
 	filters, err := buildFilters(keywords)
-	assert.NoError(err, "building filters", "keywords", keywords)
+	assert.NoError(err, "building filters keywords=%s", keywords)
 
 	prettylog.Debug("searching races with filters=%v", *filters)
 	flatRaces, err := s.db.SearchRaces(filters)

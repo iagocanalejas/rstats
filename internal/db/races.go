@@ -57,7 +57,7 @@ func (r *Repository) GetRaceByID(raceID int64) (*RaceRow, error) {
 		Where(sq.Eq{"r.id": raceID}).
 		PlaceholderFormat(sq.Dollar).
 		ToSql()
-	assert.NoError(err, "building query", "query", query, "args", args)
+	assert.NoError(err, "building query=%s args=%s", query, args)
 
 	var race RaceRow
 	if err = r.db.Get(&race, query, args...); err != nil {
@@ -154,7 +154,7 @@ func (r *Repository) SearchRaces(filters *SearchRaceParams) ([]RaceRow, error) {
 		OrderBy("date DESC, league_id").
 		PlaceholderFormat(sq.Dollar).
 		ToSql()
-	assert.NoError(err, "building query", "query", query, "args", args)
+	assert.NoError(err, "building query=%s args=%s", query, args)
 
 	var races []RaceRow
 	if err = r.db.Select(&races, query, args...); err != nil {

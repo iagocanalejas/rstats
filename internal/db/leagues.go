@@ -20,7 +20,7 @@ func (r *Repository) GetLeagueByID(leagueID int64) (*LeagueRow, error) {
 		Where(sq.Eq{"l.id": leagueID}).
 		PlaceholderFormat(sq.Dollar).
 		ToSql()
-	assert.NoError(err, "building query", "query", query, "args", args)
+	assert.NoError(err, "building query=%s args=%s", query, args)
 
 	var league LeagueRow
 	if err = r.db.Get(&league, query, args...); err != nil {

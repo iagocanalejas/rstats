@@ -146,7 +146,7 @@ func (y *yearsFlag) Set(value string) error {
 		var start, end int
 		fmt.Sscanf(limits[0], "%d", &start)
 		fmt.Sscanf(limits[1], "%d", &end)
-		assert.Assert(start > 0 && end > 0, "invalid year limits: start=%s end=%s", start, end)
+		assert.Assert(start > 0 && end > 0, "invalid year limits: start=%d end=%d", start, end)
 
 		for i := start; i <= end; i++ {
 			*y = append(*y, i)

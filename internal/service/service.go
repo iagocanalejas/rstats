@@ -19,7 +19,7 @@ func Init() *Service {
 func (s *Service) GetLeagueByID(leagueID int64) (*types.League, error) {
 	dbLeague, err := s.db.GetLeagueByID(leagueID)
 	if err != nil {
-		prettylog.Error("error loading race: %v", err)
+		prettylog.Error("error loading league: %v", err)
 		return nil, err
 	}
 

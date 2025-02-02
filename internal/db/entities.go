@@ -17,7 +17,7 @@ func (r *Repository) GetClubByID(clubID int64) (*EntityRow, error) {
 		Where(sq.Eq{"e.id": clubID, "e.type": "CLUB"}).
 		PlaceholderFormat(sq.Dollar).
 		ToSql()
-	assert.NoError(err, "building query", "query", query, "args", args)
+	assert.NoError(err, "building query=%s args=%s", query, args)
 
 	var club EntityRow
 	if err = r.db.Get(&club, query, args...); err != nil {

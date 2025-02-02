@@ -17,7 +17,7 @@ func (r *Repository) GetFlagByID(flagID int64) (*FlagRow, error) {
 		Where(sq.Eq{"f.id": flagID}).
 		PlaceholderFormat(sq.Dollar).
 		ToSql()
-	assert.NoError(err, "building query", "query", query, "args", args)
+	assert.NoError(err, "building query=%s args=%s", query, args)
 
 	var flag FlagRow
 	if err = r.db.Get(&flag, query, args...); err != nil {

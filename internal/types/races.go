@@ -6,8 +6,8 @@ import (
 	"strings"
 
 	"github.com/iagocanalejas/rstats/internal/db"
-	"github.com/iagocanalejas/rstats/internal/utils"
 	"github.com/iagocanalejas/rstats/internal/utils/assert"
+	"github.com/iagocanalejas/rstats/internal/utils/strings"
 )
 
 type RaceMetadata struct {
