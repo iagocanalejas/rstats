@@ -16,6 +16,11 @@ func Init() *Service {
 	}
 }
 
+func Static() *Service {
+	// This is a static service that doesn't use the database.
+	return &Service{}
+}
+
 func (s *Service) GetLeagueByID(leagueID int64) (*types.League, error) {
 	dbLeague, err := s.db.GetLeagueByID(leagueID)
 	if err != nil {

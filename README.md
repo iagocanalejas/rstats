@@ -106,6 +106,17 @@ go run cmd/outliers/main.go \
 #                         increase output verbosity.
 ```
 
+# Boat Calculator
+
+Given boat data, calculate some of the floating properties.
+
+- Center of Gravity (CG)
+- Compute ratio of flotability
+
+```sh
+go run cmd/boat/main.go FILE_NAME
+```
+
 # Terminal UI for regatas
 
 ```sh

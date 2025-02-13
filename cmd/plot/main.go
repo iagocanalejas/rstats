@@ -42,9 +42,9 @@ func main() {
 func parseArgs(service *service.Service) *plotter.PlotConfig {
 	pflag.Parse()
 
-	assert.Contains(gender, []any{types.GENDER_ALL, types.GENDER_MALE, types.GENDER_FEMALE, types.GENDER_MIX}, "invalid gender=%s", gender)
-	assert.Contains(category, []any{types.CATEGORY_ABSOLUT, types.CATEGORY_SCHOOL, types.CATEGORY_VETERAN}, "invalid category=%s", category)
-	assert.Contains(plotType, []any{plotter.BOXPLOT, plotter.LINE, plotter.NTH_SPEED}, "invalid plotType=%s", plotType)
+	assert.Contains(gender, []string{types.GENDER_ALL, types.GENDER_MALE, types.GENDER_FEMALE, types.GENDER_MIX}, "invalid gender=%s", gender)
+	assert.Contains(category, []string{types.CATEGORY_ABSOLUT, types.CATEGORY_SCHOOL, types.CATEGORY_VETERAN}, "invalid category=%s", category)
+	assert.Contains(plotType, []string{plotter.BOXPLOT, plotter.LINE, plotter.NTH_SPEED}, "invalid plotType=%s", plotType)
 	assert.Assert(plotType != plotter.NTH_SPEED || len(years) > 0, "plotType=%s requires at least one year", plotType)
 	assert.Assert(plotType != plotter.NTH_SPEED || index > 0, "plotType=%s requires an index", plotType)
 

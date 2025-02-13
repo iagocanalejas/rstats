@@ -67,6 +67,10 @@ func Error(msg string, data ...any) {
 	log.Println(colorize(red, msg, data...))
 }
 
+func Fatal(msg string, data ...any) {
+	log.Fatalln(colorize(red, msg, data...))
+}
+
 func colorize(colorCode int, msg string, data ...any) string {
 	fmtMsg := fmt.Sprintf(msg, data...)
 	return fmt.Sprintf("\033[%sm%s%s", strconv.Itoa(colorCode), fmtMsg, reset)
