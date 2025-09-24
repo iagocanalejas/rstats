@@ -21,7 +21,7 @@ func main() {
 	pflag.StringVarP(&gender, "gender", "g", types.GENDER_MALE, "gender filter")
 	pflag.StringVar(&category, "category", types.CATEGORY_ABSOLUT, "category filter")
 	pflag.VarP(&years, "years", "y", "years to include in the data (can specify multiple times)")
-	pflag.IntVarP(&day, "day", "d", 1, "day of the race for multiday races")
+	pflag.IntVarP(&day, "day", "d", 0, "day of the race for multiday races")
 	pflag.BoolVar(&leaguesOnly, "leagues-only", false, "only races from a league")
 	pflag.BoolVar(&branchTeams, "branch-teams", false, "filter only branch teams")
 	pflag.BoolVarP(&normalize, "normalize", "n", false, "exclude outliers based on the speeds' standard deviation")
@@ -48,7 +48,7 @@ func parseArgs(service *service.Service) *plotter.PlotConfig {
 	assert.Assert(plotType != plotter.NTH_SPEED || len(years) > 0, "plotType=%s requires at least one year", plotType)
 	assert.Assert(plotType != plotter.NTH_SPEED || index > 0, "plotType=%s requires an index", plotType)
 
-	validBoxplot := plotType == plotter.BOXPLOT && (clubID > 0 || leagueID > 0)
+	validBoxplot := plotType == plotter.BOXPLOT && (clubID > 0 || leagueID > 0 || flagID > 0)
 	validNthPlot := plotType == plotter.NTH_SPEED && leagueID > 0 && len(years) > 0 && index > 0
 	validLinePlot := plotType == plotter.LINE && (clubID > 0 || flagID > 0) && len(years) > 0
 	assert.Assert(validBoxplot || validNthPlot || validLinePlot, "invalid plot configuration")

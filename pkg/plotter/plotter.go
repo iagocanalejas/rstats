@@ -125,9 +125,7 @@ func boxplot(label string, data *map[int][]float64, years []int, output string) 
 	for _, year := range years {
 		speeds := (*data)[year]
 		values := make(plotter.Values, len(speeds))
-		for i, v := range speeds {
-			values[i] = v
-		}
+		copy(values, speeds)
 
 		boxplot, err := plotter.NewBoxPlot(vg.Points(20), float64(boxplotIdx), values)
 		assert.NoError(err, "plotting boxplot year=%d values=%v", year, values)

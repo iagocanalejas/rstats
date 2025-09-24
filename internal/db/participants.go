@@ -73,7 +73,7 @@ type ParticipantRowWithSpeed struct {
 }
 
 func (r *Repository) GetParticipantsWithSpeed() ([]ParticipantRowWithSpeed, error) {
-	rawQuery := fmt.Sprintf(`
+	rawQuery := `
 		SELECT
 			p.id, p.race_id, p.gender, p.category, p.distance, p.laps, p.lane, p.series,
 			p.club_id as club_id, e.name as club_name, p.club_names as club_raw_names,
@@ -90,7 +90,7 @@ func (r *Repository) GetParticipantsWithSpeed() ([]ParticipantRowWithSpeed, erro
 			AND (extract(EPOCH FROM p.laps[cardinality(p.laps)]) > 0)
 			AND NOT EXISTS(SELECT * FROM penalty WHERE participant_id = p.id AND disqualification)
 		ORDER BY p.race_id, p.gender, p.category;
-	`)
+	`
 	prettylog.Debug("%s", rawQuery)
 
 	rows, err := r.db.Query(rawQuery)
@@ -298,7 +298,7 @@ func getSpeedFilters(
 ) string {
 	assert.Assert(gender != "", "invalid gender")
 	assert.Assert(category != "", "invalid category")
-	assert.Assert(day == 1 || day == 2, "invalid day")
+	assert.Assert(day == 0 || day == 1 || day == 2, "invalid day=%d", day)
 
 	genderFilter := fmt.Sprintf("(p.gender = '%s' AND (r.gender = '%s' OR r.gender = '%s'))", gender, gender, "ALL")
 	if onlyLeagueRaces || leagueID > 0 {
@@ -312,7 +312,6 @@ func getSpeedFilters(
 
 	filters := []string{
 		"NOT r.cancelled",
-		fmt.Sprintf("r.day = %d", day),
 		"p.laps <> '{}'",
 		"NOT p.retired",
 		"NOT p.guest",
@@ -322,6 +321,10 @@ func getSpeedFilters(
 		"NOT EXISTS(SELECT * FROM penalty WHERE participant_id = p.id AND disqualification)", // avoid disqualifications
 		genderFilter,
 		categoryFilter,
+	}
+
+	if day == 1 || day == 2 {
+		filters = append(filters, fmt.Sprintf("r.day = %d", day))
 	}
 
 	if branchTeams {

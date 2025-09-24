@@ -55,27 +55,32 @@ go run cmd/plot/main.go \
 ```sh
 # Plot the winner speed of each race for the league 5 in 2015, 2016, 2017, and 2018.
 # The plot will be saved in the Downloads folder with the name test.png.
-go run cmd/plot/main.go -t nth --league 5 -i 1 -y 2015..2018 -o ~/Downloads/p.png
+go run cmd/plot/main.go -t nth --league 5 -i 1 -y 2015..2018 -o ~/Downloads/first.png
 ```
 
 ```sh
 # Plot the normalized league speeds of the Puebla team for all the years.
-go run cmd/plot/main.go -c 25 --leagues-only -n -o ~/Downloads/p.png
+go run cmd/plot/main.go -c 25 --leagues-only -n -o ~/Downloads/puebla.png
 ```
 
 ```sh
 # Plot all AVG speeds per year for the league 5.
-go run cmd/plot/main.go --league 5 -o ~/Downloads/p.png
+go run cmd/plot/main.go --league 5 -o ~/Downloads/lgta.png
+```
+
+```sh
+# Plot the speeds for the "Concha" for the years 2000 to 2025.
+go run cmd/plot/main.go --flag 305 --years 2000..2025 -o ~/Downloads/concha.png
 ```
 
 ```sh
 # Plot the speeds of the Puebla team for the league 5 in 2021, 2022, and 2023.
-go run cmd/plot/main.go -t line -c 25 --league 5 -y 2021..2023 -o ~/Downloads/p.png
+go run cmd/plot/main.go -t line -c 25 --league 5 -y 2021..2023 -o ~/Downloads/puebla.png
 ```
 
 ```sh
 # Plot the speeds of the Puebla team for the flag 12 in 2021, 2022, and 2023.
-go run cmd/plot/main.go -t line -f 12 -y 2021..2023 -o ~/Downloads/p.png
+go run cmd/plot/main.go -t line -f 12 -y 2021..2023 -o ~/Downloads/puebla_pobra.png
 ```
 
 ```sh
